@@ -44,12 +44,18 @@ jobs:
                `gh issue edit ${{ github.event.issue.number }} --repo ${{ github.repository }} --add-label "<label>"`
                Elige según la naturaleza del issue (bug, enhancement, documentation, question, etc.).
                Si ninguno aplica claramente, no apliques ninguno.
-            4. Redacta un DIAGNÓSTICO GENERAL en español (markdown) con:
+            4. Redacta un DIAGNÓSTICO GENERAL en español, en formato Markdown válido
+               que GitHub pueda renderizar correctamente (usa encabezados con `**negrita**`,
+               listas con `-`, y bloques de código con backticks triples y el lenguaje,
+               ej. ```js, cuando cites código). Sé CONCRETO: cuanto más específico, mejor
+               (nombres exactos de funciones/variables, números de línea si los conoces,
+               rutas exactas de archivo). Evita generalidades vagas. Incluye:
                - **Resumen**: 1-2 líneas del problema.
-               - **Causa probable**: hipótesis técnica.
+               - **Causa probable**: hipótesis técnica concreta (función/variable/línea exacta si es posible).
                - **Archivos/áreas afectadas**: rutas concretas del repo (game.js, index.html,
                  style.css) y funciones si aplica.
-               - **Enfoque de solución**: pasos sugeridos para implementar la corrección.
+               - **Enfoque de solución**: pasos concretos y accionables para implementar la corrección
+                 (evita sugerencias genéricas tipo "revisar el código").
                El comentario DEBE empezar con la línea literal: `<!-- claude-triage -->`
             5. Publica o ACTUALIZA el comentario (un solo comentario de diagnóstico por issue):
                - Busca en los comments del paso 1 uno cuyo body contenga `<!-- claude-triage -->`.
