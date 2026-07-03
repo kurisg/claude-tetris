@@ -1,0 +1,62 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+# Evita corridas solapadas si el issue se edita varias veces seguidas
+concurrency:
+  group: claude-triage-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code for issue triage
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          allowed_non_write_users: "*"
+          claude_args: |
+            --allowedTools "Bash(gh label list:*),Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh api:*)"
+          prompt: |
+            Eres un asistente de triage de issues para el repositorio ${{ github.repository }}.
+            Trabaja SIEMPRE en español.
+
+            Issue a analizar: #${{ github.event.issue.number }}
+
+            Pasos:
+            1. Obtén el detalle del issue:
+               `gh issue view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json title,body,labels,comments`
+            2. Obtén los labels disponibles: `gh label list --repo ${{ github.repository }}`
+            3. Aplica los labels apropiados (SOLO de la lista existente; no inventes labels):
+               `gh issue edit ${{ github.event.issue.number }} --repo ${{ github.repository }} --add-label "<label>"`
+               Elige según la naturaleza del issue (bug, enhancement, documentation, question, etc.).
+               Si ninguno aplica claramente, no apliques ninguno.
+            4. Redacta un DIAGNÓSTICO GENERAL en español (markdown) con:
+               - **Resumen**: 1-2 líneas del problema.
+               - **Causa probable**: hipótesis técnica.
+               - **Archivos/áreas afectadas**: rutas concretas del repo (game.js, index.html,
+                 style.css) y funciones si aplica.
+               - **Enfoque de solución**: pasos sugeridos para implementar la corrección.
+               El comentario DEBE empezar con la línea literal: `<!-- claude-triage -->`
+            5. Publica o ACTUALIZA el comentario (un solo comentario de diagnóstico por issue):
+               - Busca en los comments del paso 1 uno cuyo body contenga `<!-- claude-triage -->`.
+               - Si existe, edítalo:
+                 `gh api -X PATCH repos/${{ github.repository }}/issues/comments/<COMMENT_ID> -f body=@- <<'EOF' ... EOF`
+                 (o pasando el body con -f body="...").
+               - Si no existe, créalo:
+                 `gh issue comment ${{ github.event.issue.number }} --repo ${{ github.repository }} --body "..."`
+
+            No comuniques nada fuera del comentario de diagnóstico y los labels.
